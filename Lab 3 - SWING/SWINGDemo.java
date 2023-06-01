@@ -1,14 +1,17 @@
 package com.mybank.gui;
 
-import com.mybank.domain.Bank;
-import com.mybank.domain.CheckingAccount;
-import com.mybank.domain.Customer;
-import com.mybank.domain.SavingsAccount;
+import com.mybank.data.DataSource;
+import com.mybank.domain.*;
+import com.mybank.reporting.CustomerReport;
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
+import java.net.URLDecoder;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JEditorPane;
@@ -23,12 +26,14 @@ public class SWINGDemo {
     
     private final JEditorPane log;
     private final JButton show;
+    private final JButton report;
     private final JComboBox clients;
     
     public SWINGDemo() {
         log = new JEditorPane("text/html", "");
-        log.setPreferredSize(new Dimension(250, 150));
+        log.setPreferredSize(new Dimension(450, 350));
         show = new JButton("Show");
+        report = new JButton("Report");
         clients = new JComboBox();
         for (int i=0; i<Bank.getNumberOfCustomers();i++)
         {
@@ -45,6 +50,7 @@ public class SWINGDemo {
         
         cpane.add(clients);
         cpane.add(show);
+        cpane.add(report);
         frame.add(cpane, BorderLayout.NORTH);
         frame.add(log, BorderLayout.CENTER);
         
@@ -60,6 +66,34 @@ public class SWINGDemo {
                 log.setText(custInfo);                
             }
         });
+
+        report.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String custInfo = "";
+                custInfo += "<h1>CUSTOMERS REPORT</h1>";
+
+                for(int cust_idx = 0; cust_idx < Bank.getNumberOfCustomers(); ++cust_idx) {
+                    Customer customer = Bank.getCustomer(cust_idx);
+                    custInfo += "<h5>Customer: " + customer.getLastName() + ", " + customer.getFirstName() + "</h5>";
+
+                    for(int acct_idx = 0; acct_idx < customer.getNumberOfAccounts(); ++acct_idx) {
+                        Account account = customer.getAccount(acct_idx);
+                        String account_type = "";
+                        if (account instanceof SavingsAccount) {
+                            account_type = "Savings Account";
+                        } else if (account instanceof CheckingAccount) {
+                            account_type = "Checking Account";
+                        } else {
+                            account_type = "Unknown Account Type";
+                        }
+
+                        custInfo += "<span>" + account_type + ": current balance is " + account.getBalance() + "<span>";
+                    }
+                }
+                log.setText(custInfo);
+            }
+        });
         
         frame.pack();
         frame.setLocationRelativeTo(null);
@@ -68,15 +102,12 @@ public class SWINGDemo {
         frame.setVisible(true);        
     }
     
-    public static void main(String[] args) {
-        
-        Bank.addCustomer("John", "Doe");
-        Bank.addCustomer("Fox", "Mulder");
-        Bank.addCustomer("Dana", "Scully");
-        Bank.getCustomer(0).addAccount(new CheckingAccount(2000));
-        Bank.getCustomer(1).addAccount(new SavingsAccount(1000, 3));
-        Bank.getCustomer(2).addAccount(new CheckingAccount(1000, 500));
-        
+    public static void main(String[] args) throws IOException {
+
+        File currentClassFile = new File(URLDecoder.decode(SWINGDemo.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8"));
+        String classFileDirectory = currentClassFile.getParent();
+        DataSource data = new DataSource(classFileDirectory + "\\35-gui-1-Dobrynya69\\test.dat");
+        data.loadData();
         SWINGDemo demo = new SWINGDemo();        
         demo.launchFrame();
     }
